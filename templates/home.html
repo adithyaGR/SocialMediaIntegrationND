@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+{% block content %}
+  <div class="jumbo">
+    <h2>Crisis Response Information Tool</h2>
+    <h3><sub>Social Media Live feed</sub></h3>
+      <div class="row">
+        <div class="col-md-3" style="background-color: #FF9999">
+            <div class="row">
+                <dt>Hashtag:</dt>
+                <dd><input id="twitter" value="quake" type=text size=30 name=tag placeholder="Twitter Hashtag"></dd>
+                <dd><input id="twitter_submit" type=submit></dd>
+                <div id="twitter_result" class="col-md-12">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3" style="background-color:#99CCFF ">
+            <div class="row">
+                <dt>Facebook page:</dt>
+                <dd><input id="facebook" value="timescolonist" type=text size=30 name=link placeholder="Facebook page link"></dd>
+                <dd><input id="facebook_submit" type=submit></dd>
+                <div id="facebook_result" class="col-md-12">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3" style="background-color: #90EE90">
+            <div class="row">
+                <dt>Facebook page 2:</dt>
+                <dd><input id="facebook2" value="dailymail" type=text size=30 name=link placeholder="Facebook link 2"></dd>
+                <dd><input id="facebook_submit2" type=submit></dd>
+                <div id="facebook_result2" class="col-md-12">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3" >
+            <div class="row">
+                <h4>RSS Newsfeed:</h4>
+                <div id="rsslive_result" class="col-md-12">
+                </div>
+            </div>
+        </div>
+        <script type=text/javascript>
+            function makePost(image,username,link,text){
+              post = [];
+              post.push('<div class="media">');
+              post.push('<div class="hide media-left">');
+              post.push('<a href="'+link+'"><img class="media-object" src="'+image+'" alt="..."></a>');
+              post.push('</a></div>');
+              post.push('<div class="media-body"><h4 class="media-heading">@'+username+'</h4>');
+              post.push('<p>'+text+'</p></div>');
+              return post.join('');
+            }
+          $(function() {
+            setInterval(function(){ 
+                if( $('input#twitter').val() != '')
+                    $('#twitter_submit').click();
+                if( $('input#facebook').val() != '')
+                    $('#facebook_submit').click();
+                if( $('input#facebook2').val() != '')
+                    $('#facebook_submit2').click();
+                $('#rsslive_result').FeedEk({
+                FeedUrl : 'http://rss.cnn.com/rss/cnn_topstories.rss',//this can be changed to whatever is needed
+                MaxCount : 5,
+                ShowDesc : true,
+                ShowPubDate:true,
+                DescCharacterLimit:100,
+                TitleLinkTarget:'_blank',
+                DateFormat:'MM/DD/YYYY'
+              });
+            }, 10000);//every 10 seconds get new tweets and facebook posts :P
+
+            $('#facebook_submit2,#facebook_submit1,#twitter_submit').click();
+            
+            $('#rsslive_result').FeedEk({
+                FeedUrl : 'http://rss.cnn.com/rss/cnn_topstories.rss',
+                MaxCount : 5,
+                ShowDesc : true,
+                ShowPubDate:true,
+                DescCharacterLimit:100,
+                TitleLinkTarget:'_blank',
+                DateFormat:'MM/DD/YYYY'
+              });
+              
+            $('#facebook_submit').bind('click', function() {
+              $.getJSON($SCRIPT_ROOT + '/facebook', {
+                link: $('input#facebook').val()
+              }, function(data) {
+               $("#facebook_result").html('');
+              // console.log(data,data.result)
+               $.each(JSON.parse(data.result).data, function( index, value ) {
+                   console.log(index,value)
+                  if(!!value.message)
+                   message = value.message
+                  else if(!!value.story)
+                   message = value.story
+                  $("#facebook_result").append( makePost('http://graph.facebook.com/v2.6/'+$('input#facebook').val()+'/picture',$('input#facebook').val(),'facebook.com/'+$('input#facebook').val(),message) );
+                  });
+              });
+              return false;
+            });
+            
+            $('#facebook_submit2').bind('click', function() {
+              $.getJSON($SCRIPT_ROOT + '/facebook', {
+                link: $('input#facebook2').val()
+              }, function(data) {
+               $("#facebook_result2").html('');
+              // console.log(data,data.result)
+               $.each(JSON.parse(data.result).data, function( index, value ) {
+                  // console.log(index,value)
+                  if(!!value.message)
+                   message = value.message
+                  else if(!!value.story)
+                   message = value.story
+                  $("#facebook_result2").append( makePost('http://graph.facebook.com/v2.6/'+$('input#facebook2').val()+'/picture',$('input#facebook2').val(),'facebook.com/'+$('input#facebook2').val(),message) );
+                  });
+              });
+              return false;
+            });
+                        
+            $('#twitter_submit').bind('click', function() {
+              var tags = $('input#twitter').val();
+              if(!!tags)
+                {
+                  if(tags.split(' ').length > 1)
+                    tags = tags.split(' ').join(' AND #');//OR
+                    tags = '#'+tags;
+                    console.log(tags)
+                }
+              $.getJSON($SCRIPT_ROOT + '/twitter', {
+                hashtag: tags
+              }, function(data) {
+                $("#twitter_result").html('');
+                // console.log(data)
+                  $.each(data.result, function( index, value ) {
+                    //   console.log(index,value.user)
+                      $("#twitter_result").append( makePost(value.user.profile_image_url,value.user.screen_name,value.user.url,value.text) );
+                  });
+                
+              });
+              return false;
+            });
+            
+          });
+        </script>
+  </div>
+{% endblock %}
